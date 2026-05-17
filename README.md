@@ -65,6 +65,10 @@ Draftly/
 │   └── main.py
 │
 ├── .env
+├── .gitignore
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
 ├── credentials.json
 └── README.md
@@ -150,7 +154,20 @@ http://127.0.0.1:8001
 ```
 
 ---
+# Run with Docker 🐳
 
+## Build and start containers
+
+```bash
+docker-compose up --build
+```
+
+## Stop containers
+
+```bash
+docker-compose down
+```
+---
 # API Documentation 📚
 
 Swagger Docs:
