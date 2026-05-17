@@ -72,6 +72,7 @@ Draftly/
 ├── requirements.txt
 ├── credentials.json
 └── README.md
+
 ```
 
 ---
@@ -251,3 +252,4 @@ credentials.json
 # Author 👩‍💻
 
 Built with ❤️ using FastAPI and OpenAI.
+Project submitted successfully.
