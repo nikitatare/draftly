@@ -1,5 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from google_auth_oauthlib.flow import Flow
+from app.utils.dependencies import get_db
+from app.models.user import User
 
 router = APIRouter()
 
@@ -29,11 +32,20 @@ def login():
 
 
 @router.get("/callback")
-def callback(code: str):
+def callback(code: str, db: Session = Depends(get_db)):
 
     flow.fetch_token(code=code)
 
     credentials = flow.credentials
+    user = User(
+        email="nikitatare319@gmail.com",
+        access_token=credentials.token,
+        refresh_token=credentials.refresh_token
+    )
+
+    db.add(user)
+    db.commit()
+
 
     return {
         "success": True,
