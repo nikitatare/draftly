@@ -2,10 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.models.email import Email
 import os
-from app.utils.dependencies import get_db
+from app.dependencies import get_db
 from app.models.user import User
 from app.services.gmail_service import (
-    get_gmail_service,
     fetch_unread_emails,
     get_email_detail,
     parse_email_data

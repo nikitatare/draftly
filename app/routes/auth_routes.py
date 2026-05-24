@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from google_auth_oauthlib.flow import Flow
-from app.utils.dependencies import get_db
+from app.dependencies import get_db
 from app.models.user import User
 
 router = APIRouter()

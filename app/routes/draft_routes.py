@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.orm import Session
 
-from app.utils.dependencies import get_db
+from app.dependencies import get_db
 from app.models.email import Email
 from app.models.draft import Draft
 
