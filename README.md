@@ -300,3 +300,6 @@ Backend architecture design
 Author 👩‍💻
 
 Built with ❤️ using FastAPI, Gmail API, PostgreSQL, and OpenAI.
+
+
+pull request
