@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models.email import Email
 import os
@@ -9,16 +9,21 @@ from app.services.gmail_service import (
     get_email_detail,
     parse_email_data
 )
-
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from app.core.dependencies import get_current_user
 from app.models.draft import Draft
-from app.services.gmail_service import send_email, get_gmail_service
+from app.services.gmail_service import send_email, get_gmail_service, extract_email
 
 router = APIRouter()
 
+
 @router.get("/emails")
-def get_emails(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_emails(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+
     credentials = Credentials(
         token=user.access_token,
         refresh_token=user.refresh_token,
@@ -27,55 +32,53 @@ def get_emails(db: Session = Depends(get_db)):
         client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
     )
 
+
+    if not credentials.valid:
+        try:
+            credentials.refresh(Request())
+        except Exception as e:
+            raise Exception(f"Token refresh failed: {str(e)}")
+
     service = get_gmail_service(credentials)
 
     emails = fetch_unread_emails(service)
-
-    saved_emails = []
     for msg in emails:
-
-        existing = db.query(Email).filter(
-            Email.gmail_message_id == msg["id"]
-        ).first()
-
-        # Skip if already stored
-        if existing:
-            continue
 
         detail = get_email_detail(
             service,
             msg["id"]
         )
 
-        # Save into DB
-        parsed_email = parse_email_data(detail)
+        parsed = parse_email_data(detail)
 
-        email = Email(
-            gmail_message_id=msg["id"],
-            sender=parsed_email["sender"],
-            subject=parsed_email["subject"],
-            body=parsed_email["body"]
-        )
-        db.add(email)
+        exists = db.query(Email).filter(
+            Email.gmail_message_id == msg["id"],
+            Email.user_id == user.id
+        ).first()
 
-        saved_emails.append({
-            "gmail_message_id": msg["id"]
-        })
+        if not exists:
+            email = Email(
+                gmail_message_id=msg["id"],
+                sender=extract_email(parsed["sender"]),
+                subject=parsed["subject"],
+                body=parsed["body"],
+                user_id=user.id
+            )
+
+            db.add(email)
 
     db.commit()
-
     return {
-        "message": "Emails fetched and stored",
-        "emails": saved_emails
+        "message": "success",
+        "count": len(emails)
     }
 
 @router.post("/send/{draft_id}")
 def send_draft(
     draft_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
 ):
-
-    user = db.query(User).first()
 
     credentials = Credentials(
         token=user.access_token,
@@ -88,13 +91,25 @@ def send_draft(
     service = get_gmail_service(credentials)
 
     draft = db.query(Draft).filter(
-        Draft.id == draft_id
+        Draft.id == draft_id,
+        Draft.user_id == user.id
+    ).first()
+
+    if not draft:
+        raise HTTPException(
+            status_code=404,
+            detail="Draft not found"
+        )
+
+    email = db.query(Email).filter(
+        Email.id == draft.email_id,
+        Email.user_id == user.id
     ).first()
 
     send_email(
         service,
-        "nikitaprakashtare@gmail.com",
-        "AI Reply",
+        email.sender,
+        f"Re: {email.subject}",
         draft.generated_reply
     )
 

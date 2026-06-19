@@ -6,7 +6,10 @@ class Draft(Base):
     __tablename__ = "drafts"
 
     id = Column(Integer, primary_key=True)
-
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id")
+    )
     email_id = Column(
         Integer,
         ForeignKey("emails.id")

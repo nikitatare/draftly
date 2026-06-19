@@ -1,7 +1,7 @@
 from googleapiclient.discovery import build
 import base64
 from email.mime.text import MIMEText
-
+import re
 def parse_email_data(message):
 
     headers = message["payload"]["headers"]
@@ -76,3 +76,11 @@ def send_email(service, to, subject, body):
         userId="me",
         body={"raw": raw}
     ).execute()
+
+def extract_email(from_header):
+    match = re.search(r"<(.+?)>", from_header)
+
+    if match:
+        return match.group(1)
+
+    return from_header
