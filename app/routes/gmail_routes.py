@@ -23,7 +23,7 @@ def get_emails(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-
+    print("USER =", user.email)
     credentials = Credentials(
         token=user.access_token,
         refresh_token=user.refresh_token,
@@ -36,6 +36,8 @@ def get_emails(
     if not credentials.valid:
         try:
             credentials.refresh(Request())
+            user.access_token = credentials.token
+            db.commit()
         except Exception as e:
             raise Exception(f"Token refresh failed: {str(e)}")
 

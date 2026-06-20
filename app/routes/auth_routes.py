@@ -3,12 +3,10 @@ from sqlalchemy.orm import Session
 from google_auth_oauthlib.flow import Flow
 from app.core.dependencies import get_db
 from app.models.user import User
-from app.schemas.auth_schema import RegisterRequest, LoginRequest
-from app.services.auth_service import hash_password, verify_password
 from app.core.security import create_access_token
 from app.core.dependencies import get_current_user
 from googleapiclient.discovery import build
-from fastapi.security import OAuth2PasswordRequestForm
+
 
 router = APIRouter()
 
@@ -76,84 +74,25 @@ def callback(
             access_token=credentials.token,
             refresh_token=credentials.refresh_token
         )
-
         db.add(user)
 
     db.commit()
+    db.refresh(user)
 
-    return {
-        "success": True,
-        "email": gmail_email
-    }
-
-@router.post("/register")
-def register(
-    payload: RegisterRequest,
-    db: Session = Depends(get_db)
-):
-
-    existing_user = db.query(User).filter(
-        User.email == payload.email
-    ).first()
-
-    if existing_user:
-        return {
-            "message": "User already exists"
-        }
-
-    user = User(
-        email=payload.email,
-        hashed_password=hash_password(
-            payload.password
-        )
-    )
-
-    db.add(user)
-    db.commit()
-
-    return {
-        "message": "User created"
-    }
-
-@router.post("/login")
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-
-    user = (
-        db.query(User)
-        .filter(
-            User.email == form_data.username
-        )
-        .first()
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials"
-        )
-
-    if not verify_password(
-        form_data.password,
-        user.hashed_password
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials"
-        )
-
-    token = create_access_token(
+    jwt_token = create_access_token(
         {
             "sub": user.email
         }
     )
 
     return {
-        "access_token": token,
+        "success": True,
+        "email": gmail_email,
+        "access_token": jwt_token,
         "token_type": "bearer"
     }
+
+
 
 @router.get("/me")
 def me(
@@ -163,3 +102,4 @@ def me(
         "id": current_user.id,
         "email": current_user.email
     }
+
