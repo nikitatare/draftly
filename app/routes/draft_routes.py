@@ -28,6 +28,36 @@ client = OpenAI(
 )
 
 
+@router.get("/list")
+def list_drafts(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+
+    drafts = (
+        db.query(Draft, Email)
+        .join(
+            Email,
+            Draft.email_id == Email.id
+        )
+        .filter(
+            Draft.user_id == user.id
+        )
+        .all()
+    )
+
+    return {
+        "total_records": len(drafts),
+        "data": [
+            {
+                "id": draft.id,
+                "subject": email.subject,
+                "status": draft.status
+            }
+            for draft, email in drafts
+        ]
+    }
+
 @router.post("/generate/{email_id}")
 def generate(
     email_id: int,

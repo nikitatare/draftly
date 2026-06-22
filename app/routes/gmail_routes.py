@@ -14,6 +14,7 @@ from app.core.dependencies import get_current_user
 from app.models.draft import Draft
 from app.services.gmail_service import send_email, get_gmail_service, extract_email
 from app.utils.logger import logger
+from sqlalchemy import or_
 
 router = APIRouter()
 
@@ -67,6 +68,52 @@ def get_emails(
     return {
         "message": "success",
         "count": len(emails)
+    }
+
+@router.get("/list")
+def list_emails(
+    page: int = 1,
+    limit: int = 20,
+    search: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    query = db.query(Email).filter(
+        Email.user_id == user.id
+    )
+
+    # Step 3
+    if search:
+        query = query.filter(
+            or_(
+                Email.sender.ilike(f"%{search}%"),
+                Email.subject.ilike(f"%{search}%")
+            )
+        )
+
+    # Step 4
+    total_records = query.count()
+
+    emails = (
+        query
+        .order_by(Email.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total_records": total_records,
+        "data": [
+            {
+                "id": email.id,
+                "sender": email.sender,
+                "subject": email.subject
+            }
+            for email in emails
+        ]
     }
 
 @router.post("/send/{draft_id}")

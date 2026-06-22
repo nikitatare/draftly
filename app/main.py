@@ -12,16 +12,16 @@ from app.routes.draft_routes import router as draft_router
 from app.core.exceptions import (
     GmailTokenRefreshException
 )
+from app.routes.dashboard_routes import router as dashboard_router
 
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
-
-
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(gmail_router, prefix="/gmail", tags=["Gmail"])
 app.include_router(draft_router, prefix="/draft", tags=["Draft"])
+app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 
 @app.get("/")
 def home():
