@@ -9,8 +9,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-print("SECURITY SECRET =", SECRET_KEY)
-print("ALGORITHM =", ALGORITHM)
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()

@@ -6,7 +6,7 @@ from app.models.user import User
 from app.core.security import create_access_token
 from app.core.dependencies import get_current_user
 from googleapiclient.discovery import build
-
+from app.utils.logger import logger
 
 router = APIRouter()
 
@@ -44,8 +44,7 @@ def callback(
     flow.fetch_token(code=code)
 
     credentials = flow.credentials
-    print("ACCESS TOKEN EXISTS:", credentials.token is not None)
-    print("REFRESH TOKEN:", credentials.refresh_token)
+
     from googleapiclient.discovery import build
 
     service = build(
@@ -59,7 +58,9 @@ def callback(
     ).execute()
 
     gmail_email = profile["emailAddress"]
-
+    logger.info(
+        f"Google login successful for {gmail_email}"
+    )
     user = db.query(User).filter(
         User.email == gmail_email
     ).first()
@@ -67,7 +68,9 @@ def callback(
     if user:
         user.access_token = credentials.token
         user.refresh_token = credentials.refresh_token
-
+        logger.info(
+            f"Existing user logged in: {gmail_email}"
+        )
     else:
         user = User(
             email=gmail_email,
@@ -75,7 +78,9 @@ def callback(
             refresh_token=credentials.refresh_token
         )
         db.add(user)
-
+        logger.info(
+            f"New user created: {gmail_email}"
+        )
     db.commit()
     db.refresh(user)
 

@@ -32,7 +32,7 @@ def get_current_user(
 ):
     token = credentials.credentials
 
-    print("TOKEN RECEIVED =", token[:30])
+
 
     try:
         payload = jwt.decode(
@@ -52,8 +52,6 @@ def get_current_user(
 
 
     except JWTError as e:
-
-        print("JWT ERROR =", str(e))
 
         raise HTTPException(
 

@@ -9,11 +9,11 @@ from app.services.gmail_service import (
     get_email_detail,
     parse_email_data
 )
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
+from app.services.google_auth_service import get_valid_credentials
 from app.core.dependencies import get_current_user
 from app.models.draft import Draft
 from app.services.gmail_service import send_email, get_gmail_service, extract_email
+from app.utils.logger import logger
 
 router = APIRouter()
 
@@ -23,27 +23,18 @@ def get_emails(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    print("USER =", user.email)
-    credentials = Credentials(
-        token=user.access_token,
-        refresh_token=user.refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=os.getenv("GOOGLE_CLIENT_ID"),
-        client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
+    credentials = get_valid_credentials(
+        user,
+        db
     )
 
-
-    if not credentials.valid:
-        try:
-            credentials.refresh(Request())
-            user.access_token = credentials.token
-            db.commit()
-        except Exception as e:
-            raise Exception(f"Token refresh failed: {str(e)}")
 
     service = get_gmail_service(credentials)
 
     emails = fetch_unread_emails(service)
+    logger.info(
+        f"{len(emails)} unread emails fetched for {user.email}"
+    )
     for msg in emails:
 
         detail = get_email_detail(
@@ -70,6 +61,9 @@ def get_emails(
             db.add(email)
 
     db.commit()
+    logger.info(
+        f"Emails saved successfully for {user.email}"
+    )
     return {
         "message": "success",
         "count": len(emails)
@@ -81,15 +75,10 @@ def send_draft(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-
-    credentials = Credentials(
-        token=user.access_token,
-        refresh_token=user.refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=os.getenv("GOOGLE_CLIENT_ID"),
-        client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
+    credentials = get_valid_credentials(
+        user,
+        db
     )
-
     service = get_gmail_service(credentials)
 
     draft = db.query(Draft).filter(
@@ -114,11 +103,15 @@ def send_draft(
         f"Re: {email.subject}",
         draft.generated_reply
     )
-
+    logger.info(
+        f"Sending email for draft_id={draft.id}"
+    )
     draft.status = "sent"
 
     db.commit()
-
+    logger.info(
+        f"Email sent successfully by {user.email}"
+    )
     return {
         "message": "Email sent"
     }
