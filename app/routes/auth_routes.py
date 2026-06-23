@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from google_auth_oauthlib.flow import Flow
 from app.core.dependencies import get_db
@@ -34,13 +34,16 @@ def get_google_flow():
     )
 
 @router.get("/google/login")
-def login():
+def login(request: Request):
+
     flow = get_google_flow()
 
     auth_url, _ = flow.authorization_url(
         access_type="offline",
         prompt="consent"
     )
+
+    request.session["code_verifier"] = flow.code_verifier
 
     return {
         "auth_url": auth_url
@@ -49,11 +52,14 @@ def login():
 
 @router.get("/google/callback")
 def callback(
+    request: Request,
     code: str,
     db: Session = Depends(get_db)
 ):
 
     flow = get_google_flow()
+
+    flow.code_verifier = request.session.get("code_verifier")
 
     flow.fetch_token(code=code)
 

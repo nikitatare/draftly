@@ -13,6 +13,8 @@ from app.core.exceptions import (
     GmailTokenRefreshException
 )
 from app.routes.dashboard_routes import router as dashboard_router
+from starlette.middleware.sessions import SessionMiddleware
+import os
 
 app = FastAPI()
 
@@ -26,6 +28,11 @@ app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 @app.get("/")
 def home():
     return {"message": "Draftly Running"}
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY")
+)
 
 @app.exception_handler(
     GmailTokenRefreshException
