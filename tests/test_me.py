@@ -1,12 +1,11 @@
-# tests/test_dashboard.py
 
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
 
-def test_dashboard_requires_auth():
+def test_me_requires_auth():
 
-    response = client.get("/dashboard/stats")
+    response = client.get("/auth/me")
 
     assert response.status_code in [401, 403]
