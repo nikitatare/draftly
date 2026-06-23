@@ -16,14 +16,15 @@ SCOPES = [
 
 CLIENT_SECRETS_FILE = "credentials.json"
 
-flow = Flow.from_client_secrets_file(
-    CLIENT_SECRETS_FILE,
-    scopes=SCOPES,
-    redirect_uri="http://localhost:8001/auth/google/callback"
-)
-
+def get_google_flow():
+    return Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        redirect_uri="http://localhost:8001/auth/google/callback"
+    )
 @router.get("/google/login")
 def login():
+    flow = get_google_flow()
 
     auth_url, _ = flow.authorization_url(
         access_type="offline",
@@ -40,6 +41,8 @@ def callback(
     code: str,
     db: Session = Depends(get_db)
 ):
+
+    flow = get_google_flow()
 
     flow.fetch_token(code=code)
 
