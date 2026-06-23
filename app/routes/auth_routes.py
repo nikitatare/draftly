@@ -7,7 +7,7 @@ from app.core.security import create_access_token
 from app.core.dependencies import get_current_user
 from googleapiclient.discovery import build
 from app.utils.logger import logger
-
+import os
 router = APIRouter()
 
 SCOPES = [
@@ -17,11 +17,22 @@ SCOPES = [
 CLIENT_SECRETS_FILE = "credentials.json"
 
 def get_google_flow():
-    return Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+
+    client_config = {
+        "web": {
+            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token"
+        }
+    }
+
+    return Flow.from_client_config(
+        client_config,
         scopes=SCOPES,
-        redirect_uri="http://localhost:8001/auth/google/callback"
+        redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
     )
+
 @router.get("/google/login")
 def login():
     flow = get_google_flow()
